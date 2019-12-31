@@ -2,8 +2,30 @@
 #include <string_view>
 #include <iostream>
 
+#define LIST_OF_VALUES \
+	X(UNKNOWN)\
+	X(S_EXPR)\
+	X(IDENTIFIER)\
+	X(STRING)\
+	X(NUMBER)
+
+#define X(name) name,
+enum class AST_type {
+	LIST_OF_VALUES
+};
+#undef X
+
+#define X(name) case AST_type::name: return #name;
+char const* ast_type_name (AST_type type) {
+	switch (type) {
+		LIST_OF_VALUES
+	}
+}
+#undef X
+#undef LIST_OF_VALUES
+
 struct AST {
-	std::string_view type;
+	AST_type type;
 	std::string_view content;
 	std::vector<AST*> children;
 };
@@ -65,7 +87,7 @@ auto parse_s_expr (std::string_view text) -> parse_result {
 	while (isspace(text[0]))
 		text = text.substr(1);
 
-	AST* ast = new AST{"s_expr", {}, {}};
+	AST* ast = new AST{AST_type::S_EXPR, {}, {}};
 
 	while (text.size() != 0 && text[0] != ')') {
 		auto result = parse_expression(text);
@@ -106,7 +128,7 @@ auto parse_number (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"number", {}, {}};
+	AST* ast = new AST{AST_type::NUMBER, {}, {}};
 
 	int i = 0;
 	while(isdigit(text[i])){
@@ -132,7 +154,7 @@ auto parse_identifier (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"identifier", {}, {}};
+	AST* ast = new AST{AST_type::IDENTIFIER, {}, {}};
 
 	int i = 0;
 	while(isalpha(text[i]) || isdigit(text[i])){
@@ -158,7 +180,7 @@ auto parse_string (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"string", {}, {}};
+	AST* ast = new AST{AST_type::STRING, {}, {}};
 
 	// consume opening '"'
 	text = text.substr(1);
@@ -177,20 +199,25 @@ auto parse_string (std::string_view text) -> parse_result {
 	return {true, ast, text};
 }
 
+
 void print_ast (AST* ast, int nesting = 0) {
 	for(int i = 0; i < nesting; ++i) std::cout << "  ";
 
 	if(not ast) {
 		std::cout << "(null)";
-	} else if(ast->type == "s_expr"){
-		std::cout << "[s_expr](\n";
-		for(AST* child : ast->children){
-			print_ast(child, nesting+1);
-		}
-		for(int i = 0; i < nesting; ++i) std::cout << "  ";
-		std::cout << ")";
 	} else {
-		std::cout << "[" << ast->type << "]" << ast->content;
+		std::cout << "[" << ast_type_name(ast->type) << "]";
+
+		if(ast->type == AST_type::S_EXPR){
+			std::cout << "(\n";
+			for(AST* child : ast->children){
+				print_ast(child, nesting+1);
+			}
+			for(int i = 0; i < nesting; ++i) std::cout << "  ";
+			std::cout << ")";
+		} else {
+			std::cout << ast->content;
+		}
 	}
 	std::cout << '\n';
 }
