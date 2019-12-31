@@ -4,8 +4,8 @@
 #include <iostream>
 
 struct AST {
-	std::string type;
-	std::string content;
+	std::string_view type;
+	std::string_view content;
 	std::vector<AST*> children;
 };
 
@@ -66,7 +66,7 @@ auto parse_s_expr (std::string_view text) -> parse_result {
 	while (isspace(text[0]))
 		text = text.substr(1);
 
-	AST* ast = new AST{"s_expr", "", {}};
+	AST* ast = new AST{"s_expr", {}, {}};
 
 	while (text.size() != 0 && text[0] != ')') {
 		auto result = parse_expression(text);
@@ -107,12 +107,15 @@ auto parse_number (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"number", "", {}};
+	AST* ast = new AST{"number", {}, {}};
 
-	while(isdigit(text[0])){
-		ast->content.push_back(text[0]);
-		text = text.substr(1);
+	int i = 0;
+	while(isdigit(text[i])){
+		i++;
 	}
+
+	ast->content = text.substr(0, i);
+	text = text.substr(i);
 
 	return {true, ast, text};
 }
@@ -130,12 +133,15 @@ auto parse_identifier (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"identifier", "", {}};
+	AST* ast = new AST{"identifier", {}, {}};
 
-	while(isalpha(text[0]) || isdigit(text[0])){
-		ast->content.push_back(text[0]);
-		text = text.substr(1);
+	int i = 0;
+	while(isalpha(text[i]) || isdigit(text[i])){
+		i++;
 	}
+
+	ast->content = text.substr(0, i);
+	text = text.substr(i);
 
 	return {true, ast, text};
 }
@@ -153,15 +159,18 @@ auto parse_string (std::string_view text) -> parse_result {
 		}
 	}
 
-	AST* ast = new AST{"string", "", {}};
+	AST* ast = new AST{"string", {}, {}};
 
 	// consume opening '"'
 	text = text.substr(1);
 
-	while(text[0] != '"'){
-		ast->content.push_back(text[0]);
-		text = text.substr(1);
+	int i = 0;
+	while(text[i] != '"'){
+		i++;
 	}
+
+	ast->content = text.substr(0, i);
+	text = text.substr(i);
 
 	// consume closing '"'
 	text = text.substr(1);
@@ -188,7 +197,6 @@ void print_ast (AST* ast, int nesting = 0) {
 }
 
 int main () {
-#if 1
 	auto source = R"lisp(
 		(
 			(define val 58)
@@ -196,8 +204,8 @@ int main () {
 			((id link) "hello" "hello.html")
 		)
 	)lisp";
-#endif
 
 	auto result = parse_expression(source);
+
 	print_ast(result.ast);
 }
